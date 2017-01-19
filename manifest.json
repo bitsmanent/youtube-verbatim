@@ -1,0 +1,22 @@
+{
+
+"manifest_version": 2,
+"name": "YouTube Verbatim",
+"description": "Search subtitles inside a YouTube video.",
+"version": "0.1",
+"author": "Claudio Alessi",
+"homepage_url": "https://github.com/clamiax/youtube-verbatim",
+"short_name": "YT-Verb.",
+
+"content_scripts": [{
+	"run_at": "document_idle",
+	"matches": ["https://www.youtube.com/watch?v=*"],
+	"js": ["js/main.js"]
+}],
+
+"web_accessible_resources": [
+	"js/ytverb.js",
+	"css/ytverb.css"
+]
+
+}
