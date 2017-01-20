@@ -8,6 +8,13 @@
 "homepage_url": "https://github.com/clamiax/youtube-verbatim",
 "short_name": "YT-Verb.",
 
+"icons": {
+	"16": "ico/16.png",
+	"32": "ico/32.png",
+	"48": "ico/48.png",
+	"128": "ico/128.png"
+},
+
 "content_scripts": [{
 	"run_at": "document_idle",
 	"matches": ["https://www.youtube.com/watch?v=*"],
