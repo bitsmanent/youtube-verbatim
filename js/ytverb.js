@@ -81,14 +81,25 @@ function xmlparse_timedtext(doc) {
 
 	/* XXX handle "format" attribute? */
 
-	nodes = doc.children[1].children;
+	nodes = doc.children[doc.children.length - 1].children;
 	ilen = nodes.length;
 	for(i = 0; i < ilen; ++i) {
-		if(nodes[i].tagName != "p" || !nodes[i].children.length)
+		if(nodes[i].tagName != "p")
 			continue;
 		pv = parseInt(nodes[i].getAttribute("t"), 10);
+		jlen = nodes[i].children.length;
+		if(!jlen) {
+			d.push({
+				time: pv,
+				ac: nodes[i].getAttribute("ac"),
+				text: trim(nodes[i].innerHTML)
+			});
+			continue;
+		}
+
+		/* handle s-tags */
 		sv = 0;
-		for(j = 0, jlen = nodes[i].children.length; j < jlen; ++j) {
+		for(j = 0; j < jlen; ++j) {
 			stag = nodes[i].children[j];
 			if(stag.hasAttribute("t"))
 				sv = parseInt(stag.getAttribute("t"), 10);
@@ -148,7 +159,7 @@ function gotsubs(xml) {
 		break;
 	case "timedtext":
 		subtitles = xmlparse_timedtext(doc);
-		showctx = 1;
+		showctx = doc.children.length != 1;
 		break;
 	default: /* format unrecognized */
 		subtitles = null;
