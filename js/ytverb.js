@@ -136,16 +136,26 @@ function xhrtrack(cmd, cb) {
 	};
 }
 
-function searchsubs(subs, pattern, limit) {
-	var ret, i, len;
+function searchsubs(str, limit) {
+	var ret = [], len = subtitles.length, i, j, wlen, words;
+	var gap = 1000, time = -1;
 
-	len = (subs ? subs.length : 0);
-	if(!(len && pattern))
+	if(!(str && len && limit > 0))
 		return [];
-	ret = [];
-	for(i = 0; i < len && limit - ret.length; ++i)
-		if(subtitles[i].text.indexOf(pattern) != -1)
-			ret.push(i);
+	words = str.split(' ');
+	wlen = words.length;
+	for(i = 0; i < len && limit; ++i) {
+		if(time != -1 && subtitles[i].time - time < gap)
+			continue;
+		for(j = 0; j < wlen; ++j) {
+			if(subtitles[i].text.indexOf(words[j]) != -1) {
+				ret.push(i);
+				--limit;
+				time = subtitles[i].time;
+				break;
+			}
+		}
+	}
 	return ret;
 }
 
@@ -166,7 +176,7 @@ function gotsubs(xml) {
 		break;
 	}
 	if(subtitles)
-		searchval(trim(term.value), 1); /* upgrade in background */
+		searchval(term.value, 1); /* upgrade in background */
 }
 
 function searchkeys(ev) {
@@ -174,7 +184,7 @@ function searchkeys(ev) {
 
 	switch(ev.which) {
 	case 38: /* ArrowUp */
-		if(ev.type == "keyup")
+		if(ev.type != "keydown")
 			break;
 		if(results.classList.contains("hide")) {
 			results.classList.remove("hide");
@@ -193,7 +203,7 @@ function searchkeys(ev) {
 		t.classList.add("selected");
 		break;
 	case 40: /* ArrowDown */
-		if(ev.type == "keyup")
+		if(ev.type != "keydown")
 			break;
 		if(results.classList.contains("hide")) {
 			results.classList.remove("hide");
@@ -222,7 +232,9 @@ function searchkeys(ev) {
 		results.classList.add("hide");
 		break;
 	default:
-		searchval(trim(term.value));
+		/* XXX don't search if term.value has not changed:
+		 * if(ev.type != "change") { ... } */
+		searchval(term.value);
 		return;
 	}
 	ev.stopPropagation();
@@ -232,7 +244,8 @@ function searchkeys(ev) {
 function searchval(v, bg) {
 	var fields, len, i, d;
 
-	fields = searchsubs(subtitles, v, 10);
+	v = trim(v);
+	fields = searchsubs(v, 10);
 	len = fields.length;
 	if(!len) {
 		results.innerHTML = "";
@@ -277,7 +290,8 @@ function searchval(v, bg) {
 
 function setup_search() {
 	search.addEventListener("keydown", searchkeys);
-	search.addEventListener("keyup", searchkeys);
+	search.addEventListener("keyup", searchkeys); /* XXX delay keyup events */
+	search.addEventListener("change", searchkeys);
 	search.addEventListener("focusin", function() {
 		if(results.children.length)
 			results.classList.remove("hide");
