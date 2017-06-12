@@ -332,10 +332,8 @@ function setup_toggle() {
 
 function main() {
 	content = $("#watch7-content");
-	if(!content) {
-		/* YouTube Beta? Let's try... */
-		content = $("#pla-shelf");
-	}
+	if(!content)
+		content = $("#info"); /* YouTube Beta */
 	if(!content) {
 		console.log("YouTube Verbatim: cannot play with this DOM.");
 		return;
