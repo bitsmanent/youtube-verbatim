@@ -1,8 +1,10 @@
 (function() {
+"use strict";
 
 var content, search, term, results;
 var subtitles = null;
 var showctx = 0;
+var videoid = yt.config_.VIDEO_ID || ytplayer.config.args.video_id; /* or YouTube Beta */
 
 var tpls = {
 	search: ' \
@@ -30,7 +32,7 @@ function trim(s) {
 }
 
 function mkview(tpl, d) {
-        var k, ret = tpl;
+        var ret = tpl, re, k;
 
         for(k in d) {
                 re = new RegExp("%{"+k+"}", 'g');
@@ -136,29 +138,6 @@ function xhrtrack(cmd, cb) {
 	};
 }
 
-function searchsubs(str, limit) {
-	var ret = [], len = subtitles.length, i, j, wlen, words;
-	var gap = 1000, time = -1;
-
-	if(!(str && len && limit > 0))
-		return [];
-	words = str.split(' ');
-	wlen = words.length;
-	for(i = 0; i < len && limit; ++i) {
-		if(time != -1 && subtitles[i].time - time < gap)
-			continue;
-		for(j = 0; j < wlen; ++j) {
-			if(subtitles[i].text.indexOf(words[j]) != -1) {
-				ret.push(i);
-				--limit;
-				time = subtitles[i].time;
-				break;
-			}
-		}
-	}
-	return ret;
-}
-
 function gotsubs(xml) {
 	var doc = xml.children[0];
 
@@ -241,20 +220,10 @@ function searchkeys(ev) {
 	ev.preventDefault();
 }
 
-function searchval(v, bg) {
-	var fields, len, i, d;
+function searchrender(fields) {
+	var html = "", len, d, i;
 
-	v = trim(v);
-	fields = searchsubs(v, 10);
-	len = fields.length;
-	if(!len) {
-		results.innerHTML = "";
-		results.classList.add("hide");
-		return;
-	}
-	/* render results */
-	results.innerHTML = "";
-	for(i = 0; i < len; ++i) {
+	for(i = 0, len = fields.length; i < len; ++i) {
 		d = new Date(subtitles[fields[i]].time);
 		d = {
 			h: d.getUTCHours(),
@@ -262,17 +231,11 @@ function searchval(v, bg) {
 			s: d.getUTCSeconds()
 		};
 		d = {
-			prematch: showctx ? 
-				(subtitles[fields[i] - 2] ? subtitles[fields[i]-2].text+" " : "")
-				+ (subtitles[fields[i] - 1] ? " "+subtitles[fields[i]-1].text : "")
-				: "",
-			postmatch: showctx ?
-				(subtitles[fields[i] + 1] ? subtitles[fields[i]+1].text+" " : "")
-				+ (subtitles[fields[i] + 2] ? " "+subtitles[fields[i]+2].text : "")
-				: "",
+			prematch: "",
+			postmatch: "",
 			match: subtitles[fields[i]].text,
 			href: ""
-				+ "/watch?v="+yt.config_.VIDEO_ID+"&t="
+				+ "/watch?v="+videoid+"&t="
 				+ (d.h ? d.h+"h" : "")
 				+ (d.m ? d.m+"m" : "")
 				+ d.s + "s",
@@ -282,7 +245,41 @@ function searchval(v, bg) {
 				+':'+(d.s < 10 ? '0' : '') + d.s,
 			seek: d.m*60+d.s
 		};
-		results.innerHTML += mkview(tpls.searchitem, d);
+		if(showctx) {
+			d.prematch = (subtitles[fields[i] - 2] ? subtitles[fields[i]-2].text+" " : "")
+					+ (subtitles[fields[i] - 1] ? " "+subtitles[fields[i]-1].text : "")
+			d.postmatch = (subtitles[fields[i] + 1] ? subtitles[fields[i]+1].text+" " : "")
+					+ (subtitles[fields[i] + 2] ? " "+subtitles[fields[i]+2].text : "")
+		}
+		html += mkview(tpls.searchitem, d);
+	}
+	return html;
+}
+
+function searchsubs(str, limit) {
+	var ret = [], len = subtitles.length, i, j, wlen, words;
+
+	if(!(str && len && limit > 0))
+		return [];
+	words = str.split(' ');
+	wlen = words.length;
+	for(i = 0; i < len && limit; ++i) {
+		for(j = 0; j < wlen; ++j) {
+			if(subtitles[i].text.indexOf(words[j]) != -1) {
+				ret.push(i);
+				--limit;
+				break;
+			}
+		}
+	}
+	return ret;
+}
+
+function searchval(v, bg) {
+	v = trim(v);
+	if(!(results.innerHTML = searchrender(searchsubs(v, 10)))) {
+		results.classList.add("hide");
+		return;
 	}
 	if(!bg)
 		results.classList.remove("hide");
@@ -335,6 +332,15 @@ function setup_toggle() {
 
 function main() {
 	content = $("#watch7-content");
+	if(!content) {
+		/* YouTube Beta? Let's try... */
+		content = $("#pla-shelf");
+	}
+	if(!content) {
+		console.log("YouTube Verbatim: cannot play with this DOM.");
+		return;
+	}
+	console.log("YouTube Verbatim: running...", content);
 	content.innerHTML = tpls.search + content.innerHTML; /* prepare DOM */
 	search = $("#ytverb-search");
 	term = $("#ytverb-search-term");
@@ -345,5 +351,10 @@ function main() {
 	xhrtrack("timedtext", gotsubs);
 }
 
-main();
+/* Let's wait for the DOM to be ready. This allow to attach on YouTube Beta,
+ * where developers had the great idea to use Polymer.
+ * A "better" approach would be to wait only when in beta but this would make
+ * main() more complex. I find this solution not so elegant but simpler.
+ * For the moment. */
+setTimeout(main, 1000);
 })();
