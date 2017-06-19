@@ -16,7 +16,7 @@ var tpls = {
 		</div> \
 	',
 	searchitem: ' \
-		<li><a href="%{href}" onclick="yt.www.watch.player.seekTo(%{seek}); return false;"> \
+		<li><a href="%{href}" onclick="yt.www ? yt.www.watch.player.seekTo(%{seek}) : null; return false;"> \
 			<span class="time">%{time}</span> \
 			<span class="match"><b>%{prematch}</b> <i>%{match}</i> <b>%{postmatch}</b></span> \
 		</a></li> \
@@ -263,13 +263,15 @@ function searchsubs(str, limit) {
 		return [];
 	words = str.split(' ');
 	wlen = words.length;
-	for(i = 0; i < len && limit; ++i) {
+	for(i = 0, len = subtitles.length; i < len && limit; ++i) {
+		if(subtitles[i].text == "\n")
+			continue;
 		for(j = 0; j < wlen; ++j) {
-			if(subtitles[i].text.indexOf(words[j]) != -1) {
-				ret.push(i);
-				--limit;
-				break;
-			}
+			if(subtitles[i].text.search(words[j]) == -1)
+				continue;
+			ret.push(i);
+			--limit;
+			break;
 		}
 	}
 	return ret;
@@ -338,7 +340,6 @@ function main() {
 		console.log("YouTube Verbatim: cannot play with this DOM.");
 		return;
 	}
-	console.log("YouTube Verbatim: running...", content);
 	content.innerHTML = tpls.search + content.innerHTML; /* prepare DOM */
 	search = $("#ytverb-search");
 	term = $("#ytverb-search-term");
