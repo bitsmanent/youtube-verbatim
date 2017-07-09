@@ -334,13 +334,24 @@ function setup_toggle() {
 
 function main() {
 	content = $("#watch7-content");
-	if(!content)
-		content = $("#info"); /* YouTube Beta */
-	if(!content) {
-		console.log("YouTube Verbatim: cannot play with this DOM.");
-		return;
+
+	/* prepare DOM */
+	if(content) {
+		content.innerHTML = tpls.search + content.innerHTML;
 	}
-	content.innerHTML = tpls.search + content.innerHTML; /* prepare DOM */
+	else {
+		content = $("#player-container"); /* YouTube Beta */
+		if(!content) {
+			console.log("YouTube Verbatim: cannot play with this DOM.");
+			return;
+		}
+		var d = document.createElement("div");
+
+		d.innerHTML = tpls.search;
+		content.parentNode.insertBefore(d, content.nextSibling.nextSibling);
+		//content.innerHTML = content.innerHTML + tpls.search;
+	}
+
 	search = $("#ytverb-search");
 	term = $("#ytverb-search-term");
 	results = $("#ytverb-search-results");
